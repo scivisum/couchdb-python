@@ -6,6 +6,7 @@
 # This software is licensed as described in the file COPYING, which
 # you should have received as part of this distribution.
 
+import copy
 from decimal import Decimal
 import unittest
 
@@ -248,6 +249,86 @@ class WrappingTestCase(testutil.TempDatabaseMixin, unittest.TestCase):
         self.assertEqual(type(results.rows[0]), self.Item)
         results = self.Item.query(self.db, all_map_func, None, include_docs=True)
         self.assertEqual(type(results.rows[0]), self.Item)
+
+
+class TestWrap(testutil.TempDatabaseMixin, unittest.TestCase):
+
+    def test_simple_schema_change(self):
+        my_mapping = mapping.Mapping.build(
+            name=mapping.TextField(),
+        )
+        my_instance = my_mapping.wrap({})
+        my_instance.name = 'Harry'
+
+        data = copy.copy(my_instance._data)
+
+        my_new_mapping = mapping.Mapping.build(
+            name=mapping.TextField(),
+            age=mapping.IntegerField(),
+        )
+
+        instance = my_new_mapping.wrap(data)
+        instance.age = 32
+        assert data['age'] == 32
+
+    def test_defaults_for_new_schema_should_be_set(self):
+        my_mapping = mapping.Mapping.build(
+            name=mapping.TextField(),
+        )
+        my_instance = my_mapping.wrap({})
+        my_instance.name = 'Harry'
+
+        data = copy.copy(my_instance._data)
+
+        my_new_mapping = mapping.Mapping.build(
+            name=mapping.TextField(),
+            address=mapping.DictField(mapping.Mapping.build(
+                number=mapping.IntegerField(default=1),
+                street=mapping.TextField(default='street')
+            )),
+            pets=mapping.ListField(mapping.TextField(), default=[])
+        )
+
+        my_new_instance = my_new_mapping.wrap(data)
+
+        assert data['pets'] == []
+        assert data['address']['number'] == 1
+        assert data['address']['street'] == 'street'
+        assert my_new_instance.address.number == 1
+        assert my_new_instance.address.street == 'street'
+
+    def test_can_set_new_schema_data(self):
+        my_mapping = mapping.Mapping.build(
+            name=mapping.TextField(),
+        )
+        my_instance = my_mapping.wrap({})
+        my_instance.name = 'Sherlock'
+
+        data = copy.copy(my_instance._data)
+
+        my_new_mapping = mapping.Mapping.build(
+            name=mapping.TextField(),
+            address=mapping.DictField(mapping.Mapping.build(
+                number=mapping.TextField(),
+                street=mapping.TextField()
+            )),
+            pets=mapping.ListField(mapping.TextField(), default=[]),
+        )
+
+        my_new_instance = my_new_mapping.wrap(data)
+
+        my_new_instance.pets.append('dog')
+        my_new_instance.pets.append('cat')
+        my_new_instance.address.number = '221B'
+        my_new_instance.address.street = 'Baker Street'
+
+        assert data['address']['number'] == '221B'
+        assert data['address']['street'] == 'Baker Street'
+        assert data['pets'] == ['dog', 'cat']
+        assert my_new_instance.address.number == '221B'
+        assert my_new_instance.address.street == 'Baker Street'
+        assert my_new_instance.pets[0] == 'dog'
+        assert my_new_instance.pets[1] == 'cat'
 
 
 def suite():

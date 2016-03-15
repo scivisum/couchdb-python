@@ -177,7 +177,34 @@ class Mapping(MappingMetaClass):
 
     @classmethod
     def wrap(cls, data):
-        instance = cls()
+        """ Wrap the data object with cls, so that any data changes are made to
+        the data object
+
+        cls may define schema for data that is not in data yet,
+            eg a document is saved to the DB
+            the document schema is changed to contain another kind of data
+            load the old document with the new schema
+            we want to be able to
+                write the data for the new schema
+                get a default value for the new schema
+
+        :param data: A dictionary object of data
+        :return: an instance of class which provides a nice interface to the
+            information in the data object
+        """
+
+        # Build the instance, this means defaults are set for any new fields
+        instance = cls(**data)
+        # instance now has a _data it's own data object which has been created
+        # based on data, and any new schema which may not have been in
+        # the original doc
+
+        # We have to wrap the data object, but we don't want to loose the
+        # defaults created in instance._data
+        # Merge any changes of data from instance back into the main data object
+        data.update(instance._data)
+
+        # make the instance wrap the data object
         instance._data = data
         return instance
 
