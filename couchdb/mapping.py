@@ -94,7 +94,11 @@ class Field(object):
         value = instance._data.get(self.name)
         if value is not None:
             value = self._to_python(value)
-        elif self.default is not None:
+        return value
+
+    def get_default(self):
+        value = None
+        if self.default is not None:
             default = self.default
             if callable(default):
                 default = default()
@@ -139,7 +143,8 @@ class Mapping(MappingMetaClass):
             if attrname in values:
                 setattr(self, attrname, values.pop(attrname))
             else:
-                setattr(self, attrname, getattr(self, attrname))
+                field = getattr(self.__class__, attrname)
+                setattr(self, attrname, field.get_default())
 
     def __iter__(self):
         return iter(self._data)
