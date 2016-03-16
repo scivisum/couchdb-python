@@ -200,7 +200,7 @@ class Mapping(MappingMetaClass):
         instance = cls()
 
         def add_defaults(default_values, data_dict):
-            for key, defaultValue in default_values.iteritems():
+            for key, defaultValue in default_values.items():
                 if key not in data_dict:
                     data_dict[key] = defaultValue
                 if isinstance(defaultValue, dict):
