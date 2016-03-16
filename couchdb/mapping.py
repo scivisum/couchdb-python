@@ -192,20 +192,19 @@ class Mapping(MappingMetaClass):
         :return: an instance of class which provides a nice interface to the
             information in the data object
         """
+        instance = cls()
 
-        # Build the instance, this means defaults are set for any new fields
-        instance = cls(**data)
-        # instance now has a _data it's own data object which has been created
-        # based on data, and any new schema which may not have been in
-        # the original doc
+        def add_defaults(default_values, data_dict):
+            for key, defaultValue in default_values.iteritems():
+                if key not in data_dict:
+                    data_dict[key] = defaultValue
+                if isinstance(defaultValue, dict):
+                    add_defaults(defaultValue, data_dict[key])
 
-        # We have to wrap the data object, but we don't want to loose the
-        # defaults created in instance._data
-        # Merge any changes of data from instance back into the main data object
-        data.update(instance._data)
-
-        # make the instance wrap the data object
+        # Recursively set the defaults if they are not in the doc already
+        add_defaults(instance._data, data)
         instance._data = data
+
         return instance
 
     def _to_python(self, value):

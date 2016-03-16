@@ -297,6 +297,57 @@ class TestWrap(testutil.TempDatabaseMixin, unittest.TestCase):
         assert my_new_instance.address.number == 1
         assert my_new_instance.address.street == 'street'
 
+    def test_defaults_for_new_schema_should_be_set_more_complex(self):
+        my_mapping = mapping.Mapping.build(
+            name=mapping.TextField(),
+        )
+        my_instance = my_mapping.wrap({})
+        my_instance.name = 'Harry'
+
+        data = copy.copy(my_instance._data)
+
+        my_new_mapping = mapping.Mapping.build(
+            name=mapping.TextField(),
+            address=mapping.DictField(mapping.Mapping.build(
+                number=mapping.IntegerField(default=1),
+                street=mapping.TextField(default='street')
+            )),
+            pets=mapping.ListField(mapping.TextField(), default=[])
+        )
+
+        my_new_instance = my_new_mapping.wrap(data)
+
+        assert data['pets'] == []
+        assert data['address']['number'] == 1
+        assert data['address']['street'] == 'street'
+        assert my_new_instance.address.number == 1
+        assert my_new_instance.address.street == 'street'
+
+
+        data = copy.copy(my_new_instance._data)
+
+        my_newer_mapping = mapping.Mapping.build(
+            name=mapping.TextField(),
+            address=mapping.DictField(mapping.Mapping.build(
+                number=mapping.IntegerField(default=1),
+                street=mapping.TextField(default='street'),
+                cars=mapping.ListField(
+                    mapping.DictField(
+                        mapping.Mapping.build(
+                            registration=mapping.TextField()
+                        )
+                    )
+                )
+            )),
+            pets=mapping.ListField(mapping.TextField(), default=[])
+        )
+
+        my_newer_instance = my_newer_mapping.wrap(data)
+
+        assert data['address']['cars'] == []
+
+
+
     def test_can_set_new_schema_data(self):
         my_mapping = mapping.Mapping.build(
             name=mapping.TextField(),
