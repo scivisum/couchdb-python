@@ -323,7 +323,6 @@ class TestWrap(testutil.TempDatabaseMixin, unittest.TestCase):
         assert my_new_instance.address.number == 1
         assert my_new_instance.address.street == 'street'
 
-
         data = copy.copy(my_new_instance._data)
 
         my_newer_mapping = mapping.Mapping.build(
@@ -345,8 +344,33 @@ class TestWrap(testutil.TempDatabaseMixin, unittest.TestCase):
         my_newer_instance = my_newer_mapping.wrap(data)
 
         assert data['address']['cars'] == []
+        my_newer_instance.address.cars.append({"registration": "AJ54 VSE"})
+        assert data['address']['cars'] == [{"registration": "AJ54 VSE"}]
+        assert my_newer_instance.address.cars[0].registration == "AJ54 VSE"
 
+        data = copy.copy(my_newer_instance._data)
 
+        my_newest_mapping = mapping.Mapping.build(
+            name=mapping.TextField(),
+            address=mapping.DictField(mapping.Mapping.build(
+                number=mapping.IntegerField(default=1),
+                street=mapping.TextField(default='street'),
+                cars=mapping.ListField(
+                    mapping.DictField(
+                        mapping.Mapping.build(
+                            registration=mapping.TextField(),
+                            wheels=mapping.IntegerField(default=4)
+                        )
+                    )
+                )
+            )),
+            pets=mapping.ListField(mapping.TextField(), default=[])
+        )
+
+        my_newest_instance = my_newest_mapping.wrap(data)
+
+        assert data['address']['cars'] == [{"registration": "AJ54 VSE", "wheels": 4}]
+        assert my_newest_instance.address.cars[0].wheels == 4
 
     def test_can_set_new_schema_data(self):
         my_mapping = mapping.Mapping.build(

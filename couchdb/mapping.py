@@ -197,6 +197,11 @@ class Mapping(MappingMetaClass):
         :return: an instance of class which provides a nice interface to the
             information in the data object
         """
+        instance = cls(**data)
+        data.update(instance._data)
+        instance._data = data
+        return instance
+
         instance = cls()
 
         def add_defaults(default_values, data_dict):
@@ -205,6 +210,10 @@ class Mapping(MappingMetaClass):
                     data_dict[key] = defaultValue
                 if isinstance(defaultValue, dict):
                     add_defaults(defaultValue, data_dict[key])
+                # # If it is a list of DictField then the DictField schema may have updated
+                # if isinstance(defaultValue, list) and :
+
+
 
         # Recursively set the defaults if they are not in the doc already
         add_defaults(instance._data, data)
@@ -496,6 +505,8 @@ class DateField(Field):
         return value
 
     def _to_json(self, value):
+        # Make sure it is the right format (it might have come from wrap)
+        value = self._to_python(value)
         if isinstance(value, datetime):
             value = value.date()
         return value.isoformat()
@@ -524,6 +535,8 @@ class DateTimeField(Field):
         return value
 
     def _to_json(self, value):
+        # Make sure it is the right format (it might have come from wrap)
+        value = self._to_python(value)
         if isinstance(value, struct_time):
             value = datetime.utcfromtimestamp(timegm(value))
         elif not isinstance(value, datetime):
@@ -553,6 +566,8 @@ class TimeField(Field):
         return value
 
     def _to_json(self, value):
+        # Make sure it is the right format (it might have come from wrap)
+        value = self._to_python(value)
         if isinstance(value, datetime):
             value = value.time()
         return value.replace(microsecond=0).isoformat()
@@ -642,7 +657,7 @@ class ListField(Field):
     >>> comment['content']
     u'Bla bla'
     >>> comment['time'] #doctest: +ELLIPSIS
-    u'...T...Z'
+    '...T...Z'
 
     >>> del server['python-tests']
     """
